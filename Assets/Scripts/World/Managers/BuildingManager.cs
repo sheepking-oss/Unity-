@@ -224,33 +224,132 @@ namespace SurvivalGame.World.Managers
                 saveData[building.BuildingID] = building.GetSaveData();
             }
 
+            Debug.Log($"[BuildingManager] Saved {saveData.Count} buildings");
+            return saveData;
+        }
+
+        public List<BuildingSaveEntry> GetAllBuildingSaveEntries()
+        {
+            List<BuildingSaveEntry> saveData = new List<BuildingSaveEntry>();
+
+            foreach (Building building in _registeredBuildings)
+            {
+                if (building == null) continue;
+                if (string.IsNullOrEmpty(building.BuildingID)) continue;
+
+                saveData.Add(new BuildingSaveEntry(building.BuildingID, building.GetSaveData()));
+            }
+
+            Debug.Log($"[BuildingManager] Saved {saveData.Count} buildings as entries");
             return saveData;
         }
 
         public void LoadBuildingSaveData(Dictionary<string, BuildingSaveData> saveData)
         {
-            if (saveData == null) return;
+            if (saveData == null)
+            {
+                Debug.LogWarning("[BuildingManager] Building save data is null");
+                return;
+            }
 
             DestroyAllBuildings();
 
             DataManager dataManager = DataManager.Instance;
-            if (dataManager == null) return;
+            if (dataManager == null)
+            {
+                Debug.LogError("[BuildingManager] DataManager is null, cannot load buildings");
+                return;
+            }
 
+            int loadedCount = 0;
             foreach (var kvp in saveData)
             {
                 BuildingSaveData buildingSave = kvp.Value;
+                if (buildingSave == null) continue;
 
                 BuildingData buildingData = dataManager.GetBuilding(buildingSave.BuildingDataID);
-                if (buildingData == null) continue;
+                if (buildingData == null)
+                {
+                    Debug.LogWarning($"[BuildingManager] BuildingData not found for ID: {buildingSave.BuildingDataID}");
+                    continue;
+                }
 
-                Building building = PlaceBuilding(buildingData, buildingSave.Position, buildingSave.Rotation);
+                Building building = PlaceBuildingWithID(buildingData, buildingSave.Position, buildingSave.Rotation, buildingSave.BuildingID);
                 if (building != null)
                 {
                     building.LoadFromSaveData(buildingSave);
+                    loadedCount++;
                 }
             }
 
-            Debug.Log($"[BuildingManager] Loaded {saveData.Count} buildings from save.");
+            Debug.Log($"[BuildingManager] Loaded {loadedCount} buildings from save (total in data: {saveData.Count})");
+        }
+
+        public void LoadBuildingSaveEntries(List<BuildingSaveEntry> saveEntries)
+        {
+            if (saveEntries == null)
+            {
+                Debug.LogWarning("[BuildingManager] Building save entries is null");
+                return;
+            }
+
+            DestroyAllBuildings();
+
+            DataManager dataManager = DataManager.Instance;
+            if (dataManager == null)
+            {
+                Debug.LogError("[BuildingManager] DataManager is null, cannot load buildings");
+                return;
+            }
+
+            int loadedCount = 0;
+            foreach (BuildingSaveEntry entry in saveEntries)
+            {
+                if (entry == null || entry.Data == null) continue;
+
+                BuildingSaveData buildingSave = entry.Data;
+
+                BuildingData buildingData = dataManager.GetBuilding(buildingSave.BuildingDataID);
+                if (buildingData == null)
+                {
+                    Debug.LogWarning($"[BuildingManager] BuildingData not found for ID: {buildingSave.BuildingDataID}");
+                    continue;
+                }
+
+                string buildingID = !string.IsNullOrEmpty(entry.Key) ? entry.Key : buildingSave.BuildingID;
+                Building building = PlaceBuildingWithID(buildingData, buildingSave.Position, buildingSave.Rotation, buildingID);
+                if (building != null)
+                {
+                    building.LoadFromSaveData(buildingSave);
+                    loadedCount++;
+                }
+            }
+
+            Debug.Log($"[BuildingManager] Loaded {loadedCount} buildings from entries (total entries: {saveEntries.Count})");
+        }
+
+        public Building PlaceBuildingWithID(BuildingData buildingData, Vector3 position, Quaternion rotation, string buildingID)
+        {
+            if (buildingData == null || buildingData.Prefab == null)
+                return null;
+
+            if (_registeredBuildings.Count >= _maxBuildings)
+            {
+                Debug.LogWarning("[BuildingManager] Maximum building count reached!");
+                return null;
+            }
+
+            GameObject buildingObject = Instantiate(buildingData.Prefab, position, rotation);
+            Building building = buildingObject.GetComponent<Building>();
+
+            if (building != null)
+            {
+                building.InitializeWithID(buildingData, buildingID);
+                RegisterBuilding(building);
+                EventManager.TriggerEvent(GameEvents.OnBuildingPlaced, building);
+            }
+
+            return building;
         }
     }
 }

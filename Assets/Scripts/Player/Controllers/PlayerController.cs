@@ -261,5 +261,25 @@ namespace SurvivalGame.Player.Controllers
             _maxStamina = Mathf.Max(1f, maxStamina);
             Stamina = Mathf.Min(Stamina, _maxStamina);
         }
+
+        public void SetHealthDirect(float health)
+        {
+            Health = health;
+        }
+
+        public void SetHungerDirect(float hunger)
+        {
+            Hunger = hunger;
+        }
+
+        public void SetStaminaDirect(float stamina)
+        {
+            Stamina = stamina;
+        }
+
+        public void SetTemperatureDirect(float temperature)
+        {
+            Temperature = temperature;
+        }
     }
 }

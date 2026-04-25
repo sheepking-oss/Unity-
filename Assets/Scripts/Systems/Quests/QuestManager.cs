@@ -282,25 +282,29 @@ namespace SurvivalGame.Systems.Quests
 
         public QuestSaveData GetSaveData()
         {
-            QuestSaveData saveData = new QuestSaveData
-            {
-                ActiveQuests = new List<QuestInstanceSaveData>(),
-                CompletedQuestIDs = new List<string>(_completedQuestIDs)
-            };
+            QuestSaveData saveData = new QuestSaveData();
 
             foreach (QuestInstance quest in _activeQuests)
             {
                 if (quest == null) continue;
 
-                saveData.ActiveQuests.Add(quest.GetSaveData());
+                saveData.ActiveQuests.Add(quest.GetSaveEntry());
             }
+
+            saveData.CompletedQuestIDs.AddRange(_completedQuestIDs);
+
+            Debug.Log($"[QuestManager] Saved {saveData.ActiveQuests.Count} active quests, {saveData.CompletedQuestIDs.Count} completed quests");
 
             return saveData;
         }
 
         public void LoadFromSaveData(QuestSaveData saveData)
         {
-            if (saveData == null) return;
+            if (saveData == null)
+            {
+                Debug.LogWarning("[QuestManager] QuestSaveData is null");
+                return;
+            }
 
             foreach (QuestInstance quest in new List<QuestInstance>(_activeQuests))
             {
@@ -308,34 +312,59 @@ namespace SurvivalGame.Systems.Quests
             }
 
             _completedQuestIDs.Clear();
-            _completedQuestIDs.AddRange(saveData.CompletedQuestIDs);
-
-            if (_dataManager == null || saveData.ActiveQuests == null) return;
-
-            foreach (QuestInstanceSaveData questSave in saveData.ActiveQuests)
+            if (saveData.CompletedQuestIDs != null)
             {
+                _completedQuestIDs.AddRange(saveData.CompletedQuestIDs);
+                Debug.Log($"[QuestManager] Loaded {_completedQuestIDs.Count} completed quest IDs");
+            }
+
+            if (_dataManager == null)
+            {
+                Debug.LogError("[QuestManager] DataManager is null, cannot load quests");
+                return;
+            }
+
+            if (saveData.ActiveQuests == null)
+            {
+                Debug.LogWarning("[QuestManager] ActiveQuests list is null");
+                return;
+            }
+
+            int loadedCount = 0;
+            foreach (QuestInstanceSaveEntry questSave in saveData.ActiveQuests)
+            {
+                if (questSave == null || string.IsNullOrEmpty(questSave.QuestID))
+                {
+                    Debug.LogWarning("[QuestManager] Invalid quest save entry");
+                    continue;
+                }
+
                 QuestData questData = _dataManager.GetQuest(questSave.QuestID);
-                if (questData == null) continue;
+                if (questData == null)
+                {
+                    Debug.LogWarning($"[QuestManager] QuestData not found for ID: {questSave.QuestID}");
+                    continue;
+                }
 
                 QuestInstance questInstance = new QuestInstance(questData);
                 questInstance.OnQuestCompleted += OnQuestCompleted;
                 questInstance.OnQuestFailed += OnQuestFailed;
 
-                foreach (var kvp in questSave.ObjectiveProgress)
+                if (questSave.ObjectiveProgress != null)
                 {
-                    questInstance.SetObjectiveProgress(kvp.Key, kvp.Value);
+                    Dictionary<string, int> progressDict = questSave.ObjectiveProgress.ToObjectiveDictionary();
+                    foreach (var kvp in progressDict)
+                    {
+                        questInstance.SetObjectiveProgress(kvp.Key, kvp.Value);
+                    }
                 }
 
                 _activeQuests.Add(questInstance);
                 _questsByID[questData.QuestID] = questInstance;
+                loadedCount++;
             }
-        }
-    }
 
-    [System.Serializable]
-    public class QuestSaveData
-    {
-        public List<QuestInstanceSaveData> ActiveQuests;
-        public List<string> CompletedQuestIDs;
+            Debug.Log($"[QuestManager] Loaded {loadedCount} active quests");
+        }
     }
 }
