@@ -41,23 +41,38 @@ namespace SurvivalGame.World.Buildings
         private void Awake()
         {
             _collider = GetComponent<Collider>();
-
-            if (string.IsNullOrEmpty(_buildingID))
-            {
-                _buildingID = $"building_{GetInstanceID()}_{System.Guid.NewGuid().ToString().Substring(0, 8)}";
-            }
         }
 
         private void Start()
         {
+            if (string.IsNullOrEmpty(_buildingID))
+            {
+                GenerateNewBuildingID();
+            }
+
             if (_buildingData != null && !_isInitialized)
             {
                 Initialize(_buildingData);
             }
         }
 
+        private void GenerateNewBuildingID()
+        {
+            _buildingID = $"building_{GetInstanceID()}_{System.Guid.NewGuid().ToString().Substring(0, 8)}";
+        }
+
         public void Initialize(BuildingData data)
         {
+            _buildingData = data;
+            _currentHealth = data.MaxHealth;
+            _isInitialized = true;
+
+            UpdateVisuals();
+        }
+
+        public void InitializeWithID(BuildingData data, string buildingID)
+        {
+            _buildingID = buildingID;
             _buildingData = data;
             _currentHealth = data.MaxHealth;
             _isInitialized = true;

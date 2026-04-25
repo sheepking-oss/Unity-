@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SurvivalGame.Data.Quests;
 using SurvivalGame.Data.Items;
 using SurvivalGame.Core.Events;
+using SurvivalGame.SaveSystem;
 
 namespace SurvivalGame.Systems.Quests
 {
@@ -192,6 +193,18 @@ namespace SurvivalGame.Systems.Quests
             }
         }
 
+        public QuestInstanceSaveEntry GetSaveEntry()
+        {
+            return new QuestInstanceSaveEntry
+            {
+                QuestID = _questData?.QuestID,
+                Status = (int)_status,
+                ObjectiveProgress = _objectiveProgress.ToObjectiveEntryList(),
+                TimeRemaining = _timeRemaining
+            };
+        }
+
+        [Obsolete("Use GetSaveEntry instead for JSON compatibility")]
         public QuestInstanceSaveData GetSaveData()
         {
             return new QuestInstanceSaveData
@@ -201,6 +214,30 @@ namespace SurvivalGame.Systems.Quests
                 ObjectiveProgress = new Dictionary<string, int>(_objectiveProgress),
                 TimeRemaining = _timeRemaining
             };
+        }
+    }
+
+    [Serializable]
+    public class QuestInstanceSaveEntry
+    {
+        public string QuestID;
+        public int Status;
+        public List<ObjectiveProgressEntry> ObjectiveProgress;
+        public float TimeRemaining;
+    }
+
+    [Serializable]
+    public class ObjectiveProgressEntry
+    {
+        public string ObjectiveID;
+        public int Progress;
+
+        public ObjectiveProgressEntry() { }
+
+        public ObjectiveProgressEntry(string objectiveID, int progress)
+        {
+            ObjectiveID = objectiveID;
+            Progress = progress;
         }
     }
 
