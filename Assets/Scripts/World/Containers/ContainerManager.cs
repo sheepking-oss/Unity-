@@ -145,35 +145,41 @@ namespace SurvivalGame.World.Containers
             _openContainers.Clear();
         }
 
-        public Dictionary<string, ContainerSaveData> GetAllContainerSaveData()
+        public List<ContainerSaveData> GetAllContainerSaveData()
         {
-            Dictionary<string, ContainerSaveData> saveData = new Dictionary<string, ContainerSaveData>();
+            List<ContainerSaveData> saveData = new List<ContainerSaveData>();
 
             foreach (Container container in _registeredContainers)
             {
                 if (container == null) continue;
                 if (string.IsNullOrEmpty(container.ContainerID)) continue;
 
-                saveData[container.ContainerID] = container.GetSaveData();
+                saveData.Add(container.GetSaveData());
             }
 
+            Debug.Log($"[ContainerManager] Saved {saveData.Count} containers.");
             return saveData;
         }
 
-        public void LoadContainerSaveData(Dictionary<string, ContainerSaveData> saveData)
+        public void LoadContainerSaveData(List<ContainerSaveData> saveData)
         {
             if (saveData == null) return;
 
-            foreach (var kvp in saveData)
+            int loadedCount = 0;
+            foreach (ContainerSaveData containerSave in saveData)
             {
-                Container container = GetContainerByID(kvp.Key);
+                if (containerSave == null) continue;
+                if (string.IsNullOrEmpty(containerSave.ContainerID)) continue;
+
+                Container container = GetContainerByID(containerSave.ContainerID);
                 if (container != null)
                 {
-                    container.LoadFromSaveData(kvp.Value);
+                    container.LoadFromSaveData(containerSave);
+                    loadedCount++;
                 }
             }
 
-            Debug.Log($"[ContainerManager] Loaded save data for {saveData.Count} containers.");
+            Debug.Log($"[ContainerManager] Loaded save data for {loadedCount}/{saveData.Count} containers.");
         }
     }
 }

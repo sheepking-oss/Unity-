@@ -11,7 +11,9 @@ namespace SurvivalGame.Systems.Quests
     {
         [SerializeField] private QuestData _questData;
         [SerializeField] private QuestStatus _status;
-        [SerializeField] private Dictionary<string, int> _objectiveProgress = new Dictionary<string, int>();
+        [SerializeField] private List<SerializableObjectiveProgress> _objectiveProgressList = new List<SerializableObjectiveProgress>();
+        
+        private Dictionary<string, int> _objectiveProgress = new Dictionary<string, int>();
         [SerializeField] private float _timeRemaining;
 
         private DateTime _acceptTime;
@@ -30,6 +32,7 @@ namespace SurvivalGame.Systems.Quests
             _questData = data;
             _status = QuestStatus.Active;
             _objectiveProgress = new Dictionary<string, int>();
+            _objectiveProgressList = new List<SerializableObjectiveProgress>();
             _acceptTime = DateTime.Now;
 
             InitializeObjectives();
@@ -45,11 +48,15 @@ namespace SurvivalGame.Systems.Quests
             if (_questData == null || _questData.Objectives == null)
                 return;
 
+            _objectiveProgress.Clear();
+            _objectiveProgressList.Clear();
+
             foreach (QuestObjective objective in _questData.Objectives)
             {
                 if (objective == null) continue;
 
                 _objectiveProgress[objective.ObjectiveID] = 0;
+                _objectiveProgressList.Add(new SerializableObjectiveProgress(objective.ObjectiveID, 0));
             }
         }
 
@@ -65,6 +72,8 @@ namespace SurvivalGame.Systems.Quests
             {
                 _objectiveProgress[objectiveID] = Mathf.Min(_objectiveProgress[objectiveID], objective.RequiredAmount);
             }
+
+            UpdateProgressList();
 
             OnQuestUpdated?.Invoke(this);
             EventManager.TriggerEvent(GameEvents.OnQuestUpdated, this);
@@ -84,8 +93,42 @@ namespace SurvivalGame.Systems.Quests
                 _objectiveProgress[objectiveID] = Mathf.Min(_objectiveProgress[objectiveID], objective.RequiredAmount);
             }
 
+            UpdateProgressList();
+
             OnQuestUpdated?.Invoke(this);
             CheckCompletion();
+        }
+
+        private void UpdateProgressList()
+        {
+            _objectiveProgressList.Clear();
+            foreach (var kvp in _objectiveProgress)
+            {
+                _objectiveProgressList.Add(new SerializableObjectiveProgress(kvp.Key, kvp.Value));
+            }
+        }
+
+        public void LoadFromSaveData(QuestInstanceSaveData saveData)
+        {
+            if (saveData == null) return;
+
+            _status = (QuestStatus)saveData.Status;
+            _timeRemaining = saveData.TimeRemaining;
+
+            _objectiveProgress.Clear();
+            _objectiveProgressList.Clear();
+
+            if (saveData.ObjectiveProgressList != null)
+            {
+                foreach (var progress in saveData.ObjectiveProgressList)
+                {
+                    if (!string.IsNullOrEmpty(progress.ObjectiveID))
+                    {
+                        _objectiveProgress[progress.ObjectiveID] = progress.Amount;
+                        _objectiveProgressList.Add(progress);
+                    }
+                }
+            }
         }
 
         public int GetObjectiveProgress(string objectiveID)
@@ -194,13 +237,28 @@ namespace SurvivalGame.Systems.Quests
 
         public QuestInstanceSaveData GetSaveData()
         {
+            UpdateProgressList();
+
             return new QuestInstanceSaveData
             {
                 QuestID = _questData?.QuestID,
                 Status = (int)_status,
-                ObjectiveProgress = new Dictionary<string, int>(_objectiveProgress),
+                ObjectiveProgressList = new List<SerializableObjectiveProgress>(_objectiveProgressList),
                 TimeRemaining = _timeRemaining
             };
+        }
+    }
+
+    [Serializable]
+    public struct SerializableObjectiveProgress
+    {
+        public string ObjectiveID;
+        public int Amount;
+
+        public SerializableObjectiveProgress(string objectiveID, int amount)
+        {
+            ObjectiveID = objectiveID;
+            Amount = amount;
         }
     }
 
@@ -209,7 +267,7 @@ namespace SurvivalGame.Systems.Quests
     {
         public string QuestID;
         public int Status;
-        public Dictionary<string, int> ObjectiveProgress;
+        public List<SerializableObjectiveProgress> ObjectiveProgressList = new List<SerializableObjectiveProgress>();
         public float TimeRemaining;
     }
 }

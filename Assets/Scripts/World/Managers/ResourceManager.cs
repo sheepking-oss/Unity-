@@ -149,35 +149,41 @@ namespace SurvivalGame.World.Managers
             Debug.Log("[ResourceManager] Force respawned all renewable resources.");
         }
 
-        public Dictionary<string, ResourceNodeSaveData> GetAllResourceSaveData()
+        public List<ResourceNodeSaveData> GetAllResourceSaveData()
         {
-            Dictionary<string, ResourceNodeSaveData> saveData = new Dictionary<string, ResourceNodeSaveData>();
+            List<ResourceNodeSaveData> saveData = new List<ResourceNodeSaveData>();
 
             foreach (ResourceNode node in _resourceNodes)
             {
                 if (node == null) continue;
                 if (string.IsNullOrEmpty(node.SaveID)) continue;
 
-                saveData[node.SaveID] = node.GetSaveData();
+                saveData.Add(node.GetSaveData());
             }
 
+            Debug.Log($"[ResourceManager] Saved {saveData.Count} resources.");
             return saveData;
         }
 
-        public void LoadResourceSaveData(Dictionary<string, ResourceNodeSaveData> saveData)
+        public void LoadResourceSaveData(List<ResourceNodeSaveData> saveData)
         {
             if (saveData == null) return;
 
-            foreach (var kvp in saveData)
+            int loadedCount = 0;
+            foreach (ResourceNodeSaveData resourceSave in saveData)
             {
-                ResourceNode node = GetResourceNodeByID(kvp.Key);
+                if (resourceSave == null) continue;
+                if (string.IsNullOrEmpty(resourceSave.SaveID)) continue;
+
+                ResourceNode node = GetResourceNodeByID(resourceSave.SaveID);
                 if (node != null)
                 {
-                    node.LoadFromSaveData(kvp.Value);
+                    node.LoadFromSaveData(resourceSave);
+                    loadedCount++;
                 }
             }
 
-            Debug.Log($"[ResourceManager] Loaded save data for {saveData.Count} resources.");
+            Debug.Log($"[ResourceManager] Loaded save data for {loadedCount}/{saveData.Count} resources.");
         }
     }
 }
