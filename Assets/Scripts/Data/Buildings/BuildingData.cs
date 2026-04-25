@@ -25,10 +25,47 @@ namespace SurvivalGame.Data.Buildings
         [SerializeField] private Vector3 _placementOffset = Vector3.zero;
         [SerializeField] private Vector3 _size = Vector3.one;
         [SerializeField] private bool _requiresFoundation = false;
+        [SerializeField] private BuildingCategory[] _validFoundationTypes;
         [SerializeField] private bool _canBeRotated = true;
         [SerializeField] private float _rotationStep = 90f;
         [SerializeField] private bool _snapToGrid = true;
         [SerializeField] private float _gridSize = 1f;
+        [SerializeField] private bool _alignToAdjacentBuildings = true;
+
+        [Header("Placement Validation Settings")]
+        [SerializeField] private PlacementValidationRule _validationRules = PlacementValidationRule.Default;
+
+        [Header("Slope Terrain Settings")]
+        [SerializeField] private bool _allowOnSlope = false;
+        [SerializeField] private float _maxAllowedSlopeAngle = 15f;
+        [SerializeField] private bool _useCustomSlopeLimit = false;
+
+        [Header("Ground Height Detection")]
+        [SerializeField] private int _groundSampleCountX = 5;
+        [SerializeField] private int _groundSampleCountZ = 5;
+        [SerializeField] private float _maxAllowedHeightVariance = 0.15f;
+        [SerializeField] private bool _useCustomHeightVariance = false;
+        [SerializeField] private float _groundDetectionHeight = 5f;
+        [SerializeField] private float _extraDepthCheck = 2f;
+
+        [Header("Collision Detection")]
+        [SerializeField] private float _collisionMargin = 0.01f;
+        [SerializeField] private bool _checkOverlapWithOtherBuildings = true;
+        [SerializeField] private bool _checkOverlapWithWalls = true;
+        [SerializeField] private bool _checkOverlapWithPlayer = true;
+
+        [Header("Building Spacing")]
+        [SerializeField] private float _minimumSpacingToOtherBuildings = 0.05f;
+        [SerializeField] private float _minimumSpacingToWalls = 0.1f;
+        [SerializeField] private bool _useCustomSpacing = false;
+
+        [Header("Support Requirements")]
+        [SerializeField] private float _requiredSupportRatio = 1f;
+        [SerializeField] private bool _allowPartialSupport = false;
+
+        [Header("Continuous Placement")]
+        [SerializeField] private bool _allowContinuousPlacement = true;
+        [SerializeField] private bool _autoSnapToGridLine = true;
 
         [Header("Properties")]
         [SerializeField] private float _maxHealth = 100f;
@@ -65,10 +102,40 @@ namespace SurvivalGame.Data.Buildings
         public Vector3 PlacementOffset => _placementOffset;
         public Vector3 Size => _size;
         public bool RequiresFoundation => _requiresFoundation;
+        public BuildingCategory[] ValidFoundationTypes => _validFoundationTypes;
         public bool CanBeRotated => _canBeRotated;
         public float RotationStep => _rotationStep;
         public bool SnapToGrid => _snapToGrid;
         public float GridSize => _gridSize;
+        public bool AlignToAdjacentBuildings => _alignToAdjacentBuildings;
+
+        public PlacementValidationRule ValidationRules => _validationRules;
+
+        public bool AllowOnSlope => _allowOnSlope;
+        public float MaxAllowedSlopeAngle => _maxAllowedSlopeAngle;
+        public bool UseCustomSlopeLimit => _useCustomSlopeLimit;
+
+        public int GroundSampleCountX => _groundSampleCountX;
+        public int GroundSampleCountZ => _groundSampleCountZ;
+        public float MaxAllowedHeightVariance => _maxAllowedHeightVariance;
+        public bool UseCustomHeightVariance => _useCustomHeightVariance;
+        public float GroundDetectionHeight => _groundDetectionHeight;
+        public float ExtraDepthCheck => _extraDepthCheck;
+
+        public float CollisionMargin => _collisionMargin;
+        public bool CheckOverlapWithOtherBuildings => _checkOverlapWithOtherBuildings;
+        public bool CheckOverlapWithWalls => _checkOverlapWithWalls;
+        public bool CheckOverlapWithPlayer => _checkOverlapWithPlayer;
+
+        public float MinimumSpacingToOtherBuildings => _minimumSpacingToOtherBuildings;
+        public float MinimumSpacingToWalls => _minimumSpacingToWalls;
+        public bool UseCustomSpacing => _useCustomSpacing;
+
+        public float RequiredSupportRatio => _requiredSupportRatio;
+        public bool AllowPartialSupport => _allowPartialSupport;
+
+        public bool AllowContinuousPlacement => _allowContinuousPlacement;
+        public bool AutoSnapToGridLine => _autoSnapToGridLine;
 
         public float MaxHealth => _maxHealth;
         public float FireResistance => _fireResistance;
@@ -86,6 +153,20 @@ namespace SurvivalGame.Data.Buildings
         public float BuildTime => _buildTime;
 
         #endregion
+
+        public bool IsValidFoundationType(BuildingCategory category)
+        {
+            if (_validFoundationTypes == null || _validFoundationTypes.Length == 0)
+                return category == BuildingCategory.Foundation;
+
+            foreach (BuildingCategory validCategory in _validFoundationTypes)
+            {
+                if (validCategory == category)
+                    return true;
+            }
+
+            return false;
+        }
     }
 
     [System.Serializable]
@@ -121,5 +202,13 @@ namespace SurvivalGame.Data.Buildings
         Bed,
         Torch,
         Other
+    }
+
+    public enum PlacementValidationRule
+    {
+        Default = 0,
+        Strict = 1,
+        Relaxed = 2,
+        IgnoreAll = 3
     }
 }
