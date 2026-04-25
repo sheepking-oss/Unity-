@@ -307,23 +307,22 @@ namespace SurvivalGame.Characters.Enemies
             }
         }
 
-        public List<EnemySaveData> GetAllEnemySaveData()
+        public Dictionary<string, EnemySaveData> GetAllEnemySaveData()
         {
-            List<EnemySaveData> saveData = new List<EnemySaveData>();
+            Dictionary<string, EnemySaveData> saveData = new Dictionary<string, EnemySaveData>();
 
             foreach (Enemy enemy in _registeredEnemies)
             {
                 if (enemy == null || !enemy.IsAlive) continue;
                 if (string.IsNullOrEmpty(enemy.EnemyID)) continue;
 
-                saveData.Add(enemy.GetSaveData());
+                saveData[enemy.EnemyID] = enemy.GetSaveData();
             }
 
-            Debug.Log($"[EnemyManager] Saved {saveData.Count} enemies.");
             return saveData;
         }
 
-        public void LoadEnemySaveData(List<EnemySaveData> saveData)
+        public void LoadEnemySaveData(Dictionary<string, EnemySaveData> saveData)
         {
             if (saveData == null) return;
 
@@ -331,10 +330,9 @@ namespace SurvivalGame.Characters.Enemies
 
             if (_dataManager == null) return;
 
-            int loadedCount = 0;
-            foreach (EnemySaveData enemySave in saveData)
+            foreach (var kvp in saveData)
             {
-                if (enemySave == null) continue;
+                EnemySaveData enemySave = kvp.Value;
 
                 EnemyData enemyData = _dataManager.GetEnemy(enemySave.EnemyDataID);
                 if (enemyData == null || enemyData.Prefab == null) continue;
@@ -351,11 +349,10 @@ namespace SurvivalGame.Characters.Enemies
                     enemy.Initialize(enemyData);
                     enemy.LoadFromSaveData(enemySave);
                     RegisterEnemy(enemy);
-                    loadedCount++;
                 }
             }
 
-            Debug.Log($"[EnemyManager] Loaded {loadedCount}/{saveData.Count} enemies from save.");
+            Debug.Log($"[EnemyManager] Loaded {saveData.Count} enemies from save.");
         }
     }
 

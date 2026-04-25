@@ -212,23 +212,22 @@ namespace SurvivalGame.World.Managers
             Debug.Log("[BuildingManager] Destroyed all buildings.");
         }
 
-        public List<BuildingSaveData> GetAllBuildingSaveData()
+        public Dictionary<string, BuildingSaveData> GetAllBuildingSaveData()
         {
-            List<BuildingSaveData> saveData = new List<BuildingSaveData>();
+            Dictionary<string, BuildingSaveData> saveData = new Dictionary<string, BuildingSaveData>();
 
             foreach (Building building in _registeredBuildings)
             {
                 if (building == null) continue;
                 if (string.IsNullOrEmpty(building.BuildingID)) continue;
 
-                saveData.Add(building.GetSaveData());
+                saveData[building.BuildingID] = building.GetSaveData();
             }
 
-            Debug.Log($"[BuildingManager] Saved {saveData.Count} buildings.");
             return saveData;
         }
 
-        public void LoadBuildingSaveData(List<BuildingSaveData> saveData)
+        public void LoadBuildingSaveData(Dictionary<string, BuildingSaveData> saveData)
         {
             if (saveData == null) return;
 
@@ -237,27 +236,21 @@ namespace SurvivalGame.World.Managers
             DataManager dataManager = DataManager.Instance;
             if (dataManager == null) return;
 
-            int loadedCount = 0;
-            foreach (BuildingSaveData buildingSave in saveData)
+            foreach (var kvp in saveData)
             {
-                if (buildingSave == null) continue;
+                BuildingSaveData buildingSave = kvp.Value;
 
                 BuildingData buildingData = dataManager.GetBuilding(buildingSave.BuildingDataID);
-                if (buildingData == null)
-                {
-                    Debug.LogWarning($"[BuildingManager] Could not find building data: {buildingSave.BuildingDataID}");
-                    continue;
-                }
+                if (buildingData == null) continue;
 
                 Building building = PlaceBuilding(buildingData, buildingSave.Position, buildingSave.Rotation);
                 if (building != null)
                 {
                     building.LoadFromSaveData(buildingSave);
-                    loadedCount++;
                 }
             }
 
-            Debug.Log($"[BuildingManager] Loaded {loadedCount}/{saveData.Count} buildings from save.");
+            Debug.Log($"[BuildingManager] Loaded {saveData.Count} buildings from save.");
         }
     }
 }

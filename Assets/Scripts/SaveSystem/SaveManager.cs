@@ -87,7 +87,7 @@ namespace SurvivalGame.SaveSystem
             {
                 GameSaveData saveData = CollectSaveData();
                 saveData.SaveName = saveName;
-                saveData.SaveTimeTicks = DateTime.Now.ToBinary();
+                saveData.SaveTime = DateTime.Now;
 
                 string json = JsonUtility.ToJson(saveData, true);
                 string fileName = $"{saveName}_{DateTime.Now:yyyyMMdd_HHmmss}{_saveFileExtension}";
@@ -97,14 +97,12 @@ namespace SurvivalGame.SaveSystem
 
                 EventManager.TriggerEvent(GameEvents.OnSaveGame);
                 Debug.Log($"[SaveManager] Game saved: {filePath}");
-                Debug.Log($"[SaveManager] Save data: Player={saveData.PlayerData?.ToString() ?? "null"}, Buildings={saveData.WorldData?.Buildings?.Count ?? 0}");
 
                 return true;
             }
             catch (Exception e)
             {
                 Debug.LogError($"[SaveManager] Save failed: {e.Message}");
-                Debug.LogError($"[SaveManager] Stack trace: {e.StackTrace}");
                 return false;
             }
         }
@@ -189,8 +187,8 @@ namespace SurvivalGame.SaveSystem
 
             if (_player != null)
             {
-                playerData.Position = new Vector3Serializable(_player.position);
-                playerData.Rotation = new QuaternionSerializable(_player.rotation);
+                playerData.Position = _player.position;
+                playerData.Rotation = _player.rotation;
             }
 
             if (_playerController != null)
@@ -210,7 +208,6 @@ namespace SurvivalGame.SaveSystem
                 playerData.Equipment = _inventoryManager.GetEquipmentSaveData();
             }
 
-            Debug.Log($"[SaveManager] Collected player data: Health={playerData.Health}, Hunger={playerData.Hunger}, Stamina={playerData.Stamina}");
             return playerData;
         }
 
@@ -238,7 +235,6 @@ namespace SurvivalGame.SaveSystem
                 worldData.Enemies = _enemyManager.GetAllEnemySaveData();
             }
 
-            Debug.Log($"[SaveManager] Collected world data: Buildings={worldData.Buildings?.Count ?? 0}, Containers={worldData.Containers?.Count ?? 0}");
             return worldData;
         }
 
@@ -273,17 +269,12 @@ namespace SurvivalGame.SaveSystem
 
         private void ApplyPlayerData(PlayerSaveData playerData)
         {
-            if (playerData == null)
-            {
-                Debug.LogWarning("[SaveManager] PlayerSaveData is null!");
-                return;
-            }
+            if (playerData == null) return;
 
             if (_player != null)
             {
-                _player.position = playerData.Position.ToVector3();
-                _player.rotation = playerData.Rotation.ToQuaternion();
-                Debug.Log($"[SaveManager] Restored player position: {_player.position}");
+                _player.position = playerData.Position;
+                _player.rotation = playerData.Rotation;
             }
 
             if (_playerController != null)
@@ -291,12 +282,6 @@ namespace SurvivalGame.SaveSystem
                 _playerController.SetMaxHealth(playerData.MaxHealth);
                 _playerController.SetMaxHunger(playerData.MaxHunger);
                 _playerController.SetMaxStamina(playerData.MaxStamina);
-
-                _playerController.Health = playerData.Health;
-                _playerController.Hunger = playerData.Hunger;
-                _playerController.Stamina = playerData.MaxStamina;
-
-                Debug.Log($"[SaveManager] Restored player stats: Health={playerData.Health}, Hunger={playerData.Hunger}, Stamina={playerData.Stamina}");
             }
 
             if (_inventoryManager != null)
@@ -304,12 +289,10 @@ namespace SurvivalGame.SaveSystem
                 if (playerData.Inventory != null)
                 {
                     _inventoryManager.LoadPlayerInventory(playerData.Inventory);
-                    Debug.Log($"[SaveManager] Loaded inventory with {playerData.Inventory.Slots?.Count ?? 0} slots");
                 }
                 if (playerData.Hotbar != null)
                 {
                     _inventoryManager.LoadHotbar(playerData.Hotbar);
-                    Debug.Log($"[SaveManager] Loaded hotbar with {playerData.Hotbar.Slots?.Count ?? 0} slots");
                 }
                 if (playerData.Equipment != null)
                 {

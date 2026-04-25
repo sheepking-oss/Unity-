@@ -308,10 +308,7 @@ namespace SurvivalGame.Systems.Quests
             }
 
             _completedQuestIDs.Clear();
-            if (saveData.CompletedQuestIDs != null)
-            {
-                _completedQuestIDs.AddRange(saveData.CompletedQuestIDs);
-            }
+            _completedQuestIDs.AddRange(saveData.CompletedQuestIDs);
 
             if (_dataManager == null || saveData.ActiveQuests == null) return;
 
@@ -324,13 +321,14 @@ namespace SurvivalGame.Systems.Quests
                 questInstance.OnQuestCompleted += OnQuestCompleted;
                 questInstance.OnQuestFailed += OnQuestFailed;
 
-                questInstance.LoadFromSaveData(questSave);
+                foreach (var kvp in questSave.ObjectiveProgress)
+                {
+                    questInstance.SetObjectiveProgress(kvp.Key, kvp.Value);
+                }
 
                 _activeQuests.Add(questInstance);
                 _questsByID[questData.QuestID] = questInstance;
             }
-
-            Debug.Log($"[QuestManager] Loaded {_activeQuests.Count} active quests, {_completedQuestIDs.Count} completed quests");
         }
     }
 
